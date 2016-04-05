@@ -1,0 +1,13 @@
+machine:
+  python:
+    version: 3.4.3
+
+test:
+  override:
+    - node -e 'console.log("Done")'
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - bundle exec cap production deploy
