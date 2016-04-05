@@ -49,8 +49,8 @@ namespace :deploy do
   task 'app:restart' do
     on roles(:web) do
       within release_path do
-        execute "ps aux | grep -ie taiga | awk '{print $2}' | xargs kill -9"
-        execute "cd #{release_path} && uwsgi --master --http :8522 --wsgi-file taiga/wsgi.py --daemonize taiga-server.log"
+        execute "ps aux | grep -ie taiga-server | awk '{print $2}' | xargs kill -9"
+        execute "cd #{release_path} && uwsgi --master --processes 4 --threads 2 --http :8522 --wsgi-file taiga/wsgi.py --daemonize taiga-server.log"
       end
     end
   end
