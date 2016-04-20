@@ -49,6 +49,7 @@ def dump_project(self, user, project):
             render_project(project, outfile)
 
     except Exception:
+        # Error
         ctx = {
             "user": user,
             "error_subject": _("Error generating project dump"),
@@ -58,17 +59,17 @@ def dump_project(self, user, project):
         email = mail_builder.export_error(user, ctx)
         email.send()
         logger.error('Error generating dump %s (by %s)', project.slug, user, exc_info=sys.exc_info())
-        return
-
-    deletion_date = timezone.now() + datetime.timedelta(seconds=settings.EXPORTS_TTL)
-    ctx = {
-        "url": url,
-        "project": project,
-        "user": user,
-        "deletion_date": deletion_date
-    }
-    email = mail_builder.dump_project(user, ctx)
-    email.send()
+    else:
+        # Success
+        deletion_date = timezone.now() + datetime.timedelta(seconds=settings.EXPORTS_TTL)
+        ctx = {
+            "url": url,
+            "project": project,
+            "user": user,
+            "deletion_date": deletion_date
+        }
+        email = mail_builder.dump_project(user, ctx)
+        email.send()
 
 
 @app.task
@@ -81,6 +82,7 @@ def load_project_dump(user, dump):
     try:
         project = dict_to_project(dump, user)
     except Exception:
+        # Error
         ctx = {
             "user": user,
             "error_subject": _("Error loading project dump"),
@@ -88,9 +90,15 @@ def load_project_dump(user, dump):
         }
         email = mail_builder.import_error(user, ctx)
         email.send()
-        logger.error('Error loading dump %s (by %s)', project.slug, user, exc_info=sys.exc_info())
-        return
+        logger.error('Error loading dump by %s <%s>',
+                     user,
+                     user.email,
+                     exc_info=sys.exc_info())
 
-    ctx = {"user": user, "project": project}
-    email = mail_builder.load_dump(user, ctx)
-    email.send()
+        # TODO: [Rollback] Remove project because it can be corrupted
+
+    else:
+        # Success
+        ctx = {"user": user, "project": project}
+        email = mail_builder.load_dump(user, ctx)
+        email.send()
